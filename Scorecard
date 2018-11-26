@@ -1,0 +1,262 @@
+Sub scorecard()
+'Data Quality Scorecard written by Alvin Useree - this content is free to use but please acknowledge'
+'the writer when using this program'
+    ActiveWorkbook.Sheets.Add After:=Worksheets(Worksheets.Count)
+    ActiveWorkbook.Sheets(Worksheets.Count).Name = "Scorecard"
+    
+    Score_title = Application.InputBox("Enter Scorecard Title")
+    score_sub_title = Application.InputBox("Enter Sub-Title")
+    
+    Dim Headings                                 'Where we store our headings'
+    Headings = Array("dummy", "Dimension", "Measure", "Figure", "Data")
+    Dim cellio As Range
+    Dim scorecard_row As Integer
+    
+'---------------------------- Setting Up ------------------------------'
+    'title'
+    With Cells(1, 1)
+        .Value = Score_title
+        .Font.Name = "Arial Black"
+        .Font.Size = 20
+    End With
+
+    'sub-title'
+    With Cells(2, 1)
+        .Value = score_sub_title
+        .Font.Name = "Calibri"
+        .Font.Size = 18
+        .Font.Bold = True
+    End With
+   
+    'Headings for the scorecard'
+    For i = 1 To 4
+    With Cells(3, i):
+        .Value = Headings(i)
+        .Font.Name = "Arial Black"
+        .Font.Size = 11
+        
+        If Headings(i) <> "Figure" Then
+            .ColumnWidth = .ColumnWidth * 4
+        Else
+            .ColumnWidth = .ColumnWidth * 2
+        End If
+        
+        If Headings(i) = "Data" Then
+            .HorizontalAlignment = xlCenter
+        End If
+        
+        .Font.ColorIndex = 2
+        .Interior.ColorIndex = 25
+    End With
+    Next i
+    
+    scorecard_row = 4
+'---------------------------- Read and Print Data -----------------------'
+Dim incre As Integer
+incre = 1
+incrementer = 1
+Dim UniqueID As Integer                         'contents of the row we are on'
+Dim ParentID As Integer
+Dim Measure As String
+Dim Name As String
+Dim First_check As Integer
+Dim Actual As Variant
+Dim Target As Variant
+
+Sheeet:
+With Sheets("Sheet1")
+    Set celio = .Cells.Find(what:="Class")
+    Application.Goto Sheet1.Range(celio.Address), True  'go to the column with the name Class'
+    ActiveCell.Offset(incre, 0).Select
+    First_check = 0
+    If IsEmpty(ActiveCell) = False And First_check = 0 Then                 'transverse through the class columnn'
+        
+        If ActiveCell.Value = "Dimension" Then          'if we find a dimension'
+        
+            UniqueID = ActiveCell.Offset(0, -2).Value
+            Measure = ActiveCell.Offset(0, 2).Value
+            Name = ActiveCell.Offset(0, 1).Value
+            Target = ActiveCell.Offset(0, 4).Value
+            Actual = ActiveCell.Offset(0, 3).Value
+            
+            ThisWorkbook.Sheets("Scorecard").Activate   'switch to the initial sheet'
+            
+            For i = 1 To 2
+                Range(Cells(scorecard_row, i), Cells(scorecard_row + 1, i)).Merge  'we merge the first two columns'
+                With Cells(scorecard_row, i)                'now we add some data to the scorecard'
+                    If i = 1 Then
+                        .Value = Name
+                        .IndentLevel = 6
+                    Else
+                        .Value = Measure
+                        .HorizontalAlignment = xlCenter
+                    End If
+                .Font.Name = "Arial Black"
+                .Font.Size = 11
+                .Font.ColorIndex = 25
+                .Interior.ColorIndex = 15
+                .VerticalAlignment = xlVAlignCenter
+                End With
+            Next i
+            
+            With Cells(scorecard_row, 3)
+                .Value = "Actual"
+                .Interior.ColorIndex = 15
+                .Font.Size = 11
+                .Font.Name = "Bahnschrift SemiBold"
+                .RowHeight = .RowHeight * 2
+                .VerticalAlignment = xlTop
+            End With
+            
+            With Cells(scorecard_row + 1, 3)
+                .Value = "Target"
+                .Interior.ColorIndex = 15
+                .Font.Size = 11
+                .Font.Name = "Bahnschrift SemiBold"
+            End With
+            'inputting data'
+            With Cells(scorecard_row, 4)
+                .Value = Actual
+                
+                If Actual > Target Then
+                    .Interior.ColorIndex = 4
+                ElseIf Actual < Target Then
+                    .Interior.ColorIndex = 3
+                Else
+                    .Interior.ColorIndex = 6
+                End If
+                               
+                .Font.Size = 11
+                .Font.Name = "Bahnschrift SemiBold"
+                .HorizontalAlignment = xlCenter
+                .VerticalAlignment = xlVAlignCenter
+                .NumberFormat = "0.00%"
+            End With
+            
+            With Cells(scorecard_row + 1, 4)
+                .Value = Target
+                .Font.Size = 11
+                .Interior.ColorIndex = 15
+                .Font.Name = "Bahnschrift SemiBold"
+                .HorizontalAlignment = xlCenter
+                .VerticalAlignment = xlVAlignCenter
+                .NumberFormat = "0.00%"
+            End With
+            
+        scorecard_row = scorecard_row + 2
+        '----------- At this point, the dimension has been logged. Now we look for any sub dimensions--------'
+        'set the active worksheet back to sheet1'
+        'look for the unique ID column (not the parent ID column because it can be empy at times'
+        'increment by 1'
+        'do if isempty(our active cell) = false'
+        'transverse through every element, reading the parent ID value'
+        'everytime the parent ID value == to the current unique ID, we log it into the scorecard'
+        'this is done by making the scorecard active again'
+        'then adding the data'
+        'make sure we do not overwrite the unique ID column'
+        'at the end remember to increment the scorecard row at the end'
+sub_dimensions:
+        ThisWorkbook.Sheets("Sheet1").Activate                          'activate sheet1'
+        Set celio1 = Cells.Find(what:="Unique ID")
+        Application.Goto Sheet1.Range(celio1.Address), True             'go to the column with the name Unique ID'
+        ActiveCell.Offset(incrementer, 0).Select                        'offset by the incrementer
+        
+        If IsEmpty(ActiveCell) = False Then                             'if the cell is not empty
+            First_check = 1
+            If ActiveCell.Offset(0, 1).Value = UniqueID Then           'if this is a sub-dimension
+                Measure = ActiveCell.Offset(0, 4).Value                 'give a new value to measure'
+                Name = ActiveCell.Offset(0, 3).Value                    'and name'
+                Target = ActiveCell.Offset(0, 6).Value                  'data'
+                Actual = ActiveCell.Offset(0, 5).Value                  'data'
+                
+                ThisWorkbook.Sheets("Scorecard").Activate               'switch back to scorecard'
+                
+                For i = 1 To 2
+                    Range(Cells(scorecard_row, i), Cells(scorecard_row + 1, i)).Merge  'we merge the first two columns'
+                    With Cells(scorecard_row, i)                'now we add some data to the scorecard'
+                        If i = 1 Then
+                            .Value = Name
+                            .IndentLevel = 8
+                        Else
+                            .Value = Measure
+                            .HorizontalAlignment = xlCenter
+                        End If
+                    .Font.Name = "Arial Black"
+                    .Font.Size = 11
+                    .Font.ColorIndex = 25
+                    .VerticalAlignment = xlVAlignCenter
+                    End With
+                Next i
+                
+                With Cells(scorecard_row, 3)
+                    .Value = "Actual"
+                    .Font.Size = 11
+                    .Font.Name = "Bahnschrift SemiBold"
+                    .RowHeight = .RowHeight * 2
+                    .VerticalAlignment = xlTop
+                End With
+                
+                With Cells(scorecard_row + 1, 3)
+                    .Value = "Target"
+                    .Font.Size = 11
+                    .Font.Name = "Bahnschrift SemiBold"
+                End With
+                
+                With Cells(scorecard_row, 4)
+                    .Value = Actual
+                    
+                    If Actual > Target Then
+                        .Interior.ColorIndex = 4
+                    ElseIf Actual < Target Then
+                        .Interior.ColorIndex = 3
+                    Else
+                        .Interior.ColorIndex = 6
+                    End If
+                
+                    .Font.Size = 11
+                    .Font.Name = "Bahnschrift SemiBold"
+                    .HorizontalAlignment = xlCenter
+                    .VerticalAlignment = xlVAlignCenter
+                    .NumberFormat = "0.00%"
+                End With
+                
+                With Cells(scorecard_row + 1, 4)
+                    .Value = Target
+                    .Font.Size = 11
+                    .Font.Name = "Bahnschrift SemiBold"
+                    .HorizontalAlignment = xlCenter
+                    .VerticalAlignment = xlVAlignCenter
+                    .NumberFormat = "0.00%"
+                End With
+                
+                'end of sub dimension'
+                scorecard_row = scorecard_row + 2                       'add two to the row number'
+            End If
+            
+            incrementer = incrementer + 1
+            GoTo sub_dimensions
+        End If
+        incrementer = 1
+        End If
+        incre = incre + 1
+        GoTo Sheeet
+    End If
+    
+End With
+
+'-------------------------- Adding Borders at the End ---------------------------------------------------'
+ThisWorkbook.Sheets("Scorecard").Activate
+ActiveSheet.UsedRange.Select
+Selection.Borders.Weight = xlThin
+Selection.Borders.ColorIndex = 16
+
+Range("A1").Select
+Range(Selection, Selection.End(xlToRight)).Select
+Selection.Borders.LineStyle = xlLineStyleNone
+
+Range("A2").Select
+Range(Selection, Selection.End(xlToRight)).Select
+Selection.Borders.LineStyle = xlLineStyleNone
+End Sub
+
+
